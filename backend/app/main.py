@@ -31,5 +31,6 @@ app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboar
 
 
 @app.get("/")
+@app.get("/health")
 def health():
     return {"status": "ok", "service": "Stockr API"}
