@@ -20,11 +20,15 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ProductForm } from '@/components/products/ProductForm'
 import { useProducts } from '@/hooks/useProducts'
+import { useDebounce } from '@/hooks/useDebounce'
+import { Input } from '@/components/ui/input'
 import client from '@/api/client'
 import type { Product } from '@/types'
 
 export function Products() {
-  const { products, loading, error } = useProducts()
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
+  const { products, loading, error } = useProducts(debouncedSearch)
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Product | undefined>()
@@ -49,9 +53,6 @@ export function Products() {
     },
   })
 
-  if (loading) return <p className="text-muted-foreground">Loading…</p>
-  if (error) return <p className="text-destructive">{error}</p>
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -59,6 +60,15 @@ export function Products() {
         <Button onClick={openCreate} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Add Product
         </Button>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="Search products by name or SKU..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-md"
+        />
       </div>
 
       <div className="rounded-md border">
@@ -73,10 +83,13 @@ export function Products() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No products yet</TableCell></TableRow>
-            )}
-            {products.map(p => (
+            {loading ? (
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Loading products…</TableCell></TableRow>
+            ) : error ? (
+              <TableRow><TableCell colSpan={5} className="text-center text-destructive py-8">{error}</TableCell></TableRow>
+            ) : products.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No products found</TableCell></TableRow>
+            ) : products.map(p => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.name}</TableCell>
                 <TableCell className="hidden md:table-cell text-muted-foreground">{p.sku}</TableCell>

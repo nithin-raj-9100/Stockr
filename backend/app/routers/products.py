@@ -12,7 +12,11 @@ TTL = 120  # seconds
 
 
 @router.get("", response_model=list[ProductOut])
-async def list_products(db: Session = Depends(get_db)):
+async def list_products(q: str | None = None, db: Session = Depends(get_db)):
+    if q:
+        data = product_service.get_all(db, q=q)
+        return [ProductOut.model_validate(p).model_dump() for p in data]
+
     cached = await cache.get(cache.PRODUCTS_ALL)
     if cached is not None:
         return cached

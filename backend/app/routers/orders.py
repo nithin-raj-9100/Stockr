@@ -12,7 +12,11 @@ TTL = 60
 
 
 @router.get("", response_model=list[OrderSummaryOut])
-async def list_orders(db: Session = Depends(get_db)):
+async def list_orders(q: str | None = None, status: str | None = None, db: Session = Depends(get_db)):
+    if q or status:
+        data = order_service.get_all(db, q=q, status=status)
+        return [OrderSummaryOut.model_validate(o).model_dump() for o in data]
+
     cached = await cache.get(cache.ORDERS_ALL)
     if cached is not None:
         return cached

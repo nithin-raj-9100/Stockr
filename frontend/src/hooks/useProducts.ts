@@ -4,11 +4,13 @@ import client from '@/api/client'
 import { queryKeys } from '@/api/queryKeys'
 import type { Product } from '@/types'
 
-export function useProducts() {
+export function useProducts(search?: string) {
   const { data = [], isLoading: loading, error, refetch } = useQuery<Product[], AxiosError<{ detail?: string }>>({
-    queryKey: queryKeys.products,
+    queryKey: search ? [...queryKeys.products, search] : queryKeys.products,
     queryFn: async () => {
-      const { data } = await client.get<Product[]>('/products')
+      const { data } = await client.get<Product[]>('/products', {
+        params: search ? { q: search } : undefined,
+      })
       return data
     },
   })

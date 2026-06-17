@@ -6,8 +6,13 @@ from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductUpdate
 
 
-def get_all(db: Session) -> list[Product]:
-    return db.query(Product).all()
+def get_all(db: Session, q: str | None = None) -> list[Product]:
+    query = db.query(Product)
+    if q:
+        query = query.filter(
+            Product.name.ilike(f"%{q}%") | Product.sku.ilike(f"%{q}%")
+        )
+    return query.all()
 
 
 def get_by_id(db: Session, product_id: int) -> Product:

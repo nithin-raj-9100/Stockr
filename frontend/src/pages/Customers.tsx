@@ -19,10 +19,14 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CustomerForm } from '@/components/customers/CustomerForm'
 import { useCustomers } from '@/hooks/useCustomers'
+import { useDebounce } from '@/hooks/useDebounce'
+import { Input } from '@/components/ui/input'
 import client from '@/api/client'
 
 export function Customers() {
-  const { customers, loading, error } = useCustomers()
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
+  const { customers, loading, error } = useCustomers(debouncedSearch)
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -43,9 +47,6 @@ export function Customers() {
     },
   })
 
-  if (loading) return <p className="text-muted-foreground">Loading…</p>
-  if (error) return <p className="text-destructive">{error}</p>
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -53,6 +54,15 @@ export function Customers() {
         <Button onClick={() => setDialogOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Add Customer
         </Button>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="Search customers by name, email, or phone..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-md"
+        />
       </div>
 
       <div className="rounded-md border">
@@ -66,10 +76,13 @@ export function Customers() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customers.length === 0 && (
-              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No customers yet</TableCell></TableRow>
-            )}
-            {customers.map(c => (
+            {loading ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Loading customers…</TableCell></TableRow>
+            ) : error ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-destructive py-8">{error}</TableCell></TableRow>
+            ) : customers.length === 0 ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No customers found</TableCell></TableRow>
+            ) : customers.map(c => (
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.full_name}</TableCell>
                 <TableCell>{c.email}</TableCell>

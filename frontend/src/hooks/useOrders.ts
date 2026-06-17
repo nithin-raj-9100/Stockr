@@ -4,11 +4,16 @@ import client from '@/api/client'
 import { queryKeys } from '@/api/queryKeys'
 import type { OrderSummary } from '@/types'
 
-export function useOrders() {
+export function useOrders(search?: string, status?: string) {
   const { data = [], isLoading: loading, error, refetch } = useQuery<OrderSummary[], AxiosError<{ detail?: string }>>({
-    queryKey: queryKeys.orders,
+    queryKey: (search || status) ? [...queryKeys.orders, search, status] : queryKeys.orders,
     queryFn: async () => {
-      const { data } = await client.get<OrderSummary[]>('/orders')
+      const { data } = await client.get<OrderSummary[]>('/orders', {
+        params: {
+          ...(search ? { q: search } : {}),
+          ...(status ? { status } : {}),
+        },
+      })
       return data
     },
   })

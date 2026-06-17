@@ -21,10 +21,23 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { OrderForm } from '@/components/orders/OrderForm'
 import { useOrders } from '@/hooks/useOrders'
+import { useDebounce } from '@/hooks/useDebounce'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import client from '@/api/client'
 
+const STATUS_ITEMS = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'completed', label: 'Completed' },
+]
+
 export function Orders() {
-  const { orders, loading, error } = useOrders()
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('all')
+  const debouncedSearch = useDebounce(search, 300)
+  const statusFilter = status === 'all' ? undefined : status
+  const { orders, loading, error } = useOrders(debouncedSearch, statusFilter)
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -46,9 +59,6 @@ export function Orders() {
     },
   })
 
-  if (loading) return <p className="text-muted-foreground">Loading…</p>
-  if (error) return <p className="text-destructive">{error}</p>
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -56,6 +66,25 @@ export function Orders() {
         <Button onClick={() => setDialogOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1" /> New Order
         </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Input
+          placeholder="Search by order # or customer details..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-md flex-1"
+        />
+        <Select value={status} onValueChange={(val) => setStatus(val ?? 'all')} items={STATUS_ITEMS}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-md border">
@@ -71,10 +100,13 @@ export function Orders() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No orders yet</TableCell></TableRow>
-            )}
-            {orders.map(o => (
+            {loading ? (
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Loading orders…</TableCell></TableRow>
+            ) : error ? (
+              <TableRow><TableCell colSpan={6} className="text-center text-destructive py-8">{error}</TableCell></TableRow>
+            ) : orders.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No orders found</TableCell></TableRow>
+            ) : orders.map(o => (
               <TableRow key={o.id}>
                 <TableCell className="font-medium">#{o.id}</TableCell>
                 <TableCell className="hidden md:table-cell">{o.customer_id}</TableCell>

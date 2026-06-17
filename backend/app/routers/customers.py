@@ -12,7 +12,11 @@ TTL = 120
 
 
 @router.get("", response_model=list[CustomerOut])
-async def list_customers(db: Session = Depends(get_db)):
+async def list_customers(q: str | None = None, db: Session = Depends(get_db)):
+    if q:
+        data = customer_service.get_all(db, q=q)
+        return [CustomerOut.model_validate(c).model_dump() for c in data]
+
     cached = await cache.get(cache.CUSTOMERS_ALL)
     if cached is not None:
         return cached

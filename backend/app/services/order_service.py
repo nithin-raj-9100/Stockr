@@ -8,8 +8,23 @@ from app.models.order import Order, OrderItem
 from app.schemas.order import OrderCreate
 
 
-def get_all(db: Session) -> list[Order]:
-    return db.query(Order).all()
+def get_all(db: Session, q: str | None = None, status: str | None = None) -> list[Order]:
+    query = db.query(Order)
+    if status:
+        query = query.filter(Order.status == status)
+    if q:
+        if q.isdigit():
+            query = query.outerjoin(Customer).filter(
+                (Order.id == int(q))
+                | Customer.full_name.ilike(f"%{q}%")
+                | Customer.email.ilike(f"%{q}%")
+            )
+        else:
+            query = query.join(Customer).filter(
+                Customer.full_name.ilike(f"%{q}%")
+                | Customer.email.ilike(f"%{q}%")
+            )
+    return query.all()
 
 
 def get_by_id(db: Session, order_id: int) -> Order:

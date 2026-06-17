@@ -4,11 +4,13 @@ import client from '@/api/client'
 import { queryKeys } from '@/api/queryKeys'
 import type { Customer } from '@/types'
 
-export function useCustomers() {
+export function useCustomers(search?: string) {
   const { data = [], isLoading: loading, error, refetch } = useQuery<Customer[], AxiosError<{ detail?: string }>>({
-    queryKey: queryKeys.customers,
+    queryKey: search ? [...queryKeys.customers, search] : queryKeys.customers,
     queryFn: async () => {
-      const { data } = await client.get<Customer[]>('/customers')
+      const { data } = await client.get<Customer[]>('/customers', {
+        params: search ? { q: search } : undefined,
+      })
       return data
     },
   })

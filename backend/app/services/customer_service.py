@@ -6,8 +6,15 @@ from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate
 
 
-def get_all(db: Session) -> list[Customer]:
-    return db.query(Customer).all()
+def get_all(db: Session, q: str | None = None) -> list[Customer]:
+    query = db.query(Customer)
+    if q:
+        query = query.filter(
+            Customer.full_name.ilike(f"%{q}%")
+            | Customer.email.ilike(f"%{q}%")
+            | Customer.phone.ilike(f"%{q}%")
+        )
+    return query.all()
 
 
 def get_by_id(db: Session, customer_id: int) -> Customer:
