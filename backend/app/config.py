@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     DATABASE_URL: str
     DIRECT_URL: str = ""
+    REDIS_URL: str = ""
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     @property

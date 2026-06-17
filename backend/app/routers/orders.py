@@ -4,25 +4,52 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.order import OrderCreate, OrderOut, OrderSummaryOut
 from app.services import order_service
+from app import cache
 
 router = APIRouter()
 
+TTL = 60
+
 
 @router.get("", response_model=list[OrderSummaryOut])
-def list_orders(db: Session = Depends(get_db)):
-    return order_service.get_all(db)
+async def list_orders(db: Session = Depends(get_db)):
+    cached = await cache.get(cache.ORDERS_ALL)
+    if cached is not None:
+        return cached
+    data = order_service.get_all(db)
+    result = [OrderSummaryOut.model_validate(o).model_dump() for o in data]
+    await cache.set(cache.ORDERS_ALL, result, TTL)
+    return result
 
 
 @router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
-def create_order(data: OrderCreate, db: Session = Depends(get_db)):
-    return order_service.create(db, data)
+async def create_order(data: OrderCreate, db: Session = Depends(get_db)):
+    order = order_service.create(db, data)
+    await cache.delete(
+        cache.ORDERS_ALL,
+        cache.PRODUCTS_ALL,
+        cache.DASHBOARD_STATS,
+    )
+    return order
 
 
 @router.get("/{order_id}", response_model=OrderOut)
-def get_order(order_id: int, db: Session = Depends(get_db)):
-    return order_service.get_by_id(db, order_id)
+async def get_order(order_id: int, db: Session = Depends(get_db)):
+    key = cache.ORDER_ONE.format(id=order_id)
+    cached = await cache.get(key)
+    if cached is not None:
+        return cached
+    order = order_service.get_by_id(db, order_id)
+    result = OrderOut.model_validate(order).model_dump()
+    await cache.set(key, result, TTL)
+    return result
 
 
 @router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_order(order_id: int, db: Session = Depends(get_db)):
+async def delete_order(order_id: int, db: Session = Depends(get_db)):
     order_service.delete(db, order_id)
+    await cache.delete(
+        cache.ORDERS_ALL,
+        cache.ORDER_ONE.format(id=order_id),
+        cache.DASHBOARD_STATS,
+    )

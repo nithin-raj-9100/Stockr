@@ -4,7 +4,10 @@ WORKDIR /app
 
 RUN npm install -g pnpm
 
-COPY package.json pnpm-lock.yaml ./
+ENV pnpm_config_minimum_release_age=0
+ENV pnpm_config_minimum_release_age_strict=false
+
+COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .

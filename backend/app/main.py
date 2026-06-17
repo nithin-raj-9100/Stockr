@@ -3,15 +3,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.cache import connect as cache_connect, disconnect as cache_disconnect
 from app.routers import products, customers, orders, dashboard
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await cache_connect()
     yield
+    await cache_disconnect()
 
 
-app = FastAPI(title="Inventory Management API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Stockr API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,4 +32,4 @@ app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboar
 
 @app.get("/")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "service": "Stockr API"}

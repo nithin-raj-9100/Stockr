@@ -6,14 +6,20 @@ from app.models.product import Product
 from app.models.customer import Customer
 from app.models.order import Order
 from app.schemas.order import DashboardStats
+from app import cache
 
 router = APIRouter()
 
 LOW_STOCK_THRESHOLD = 10
+TTL = 30
 
 
 @router.get("/stats", response_model=DashboardStats)
-def get_stats(db: Session = Depends(get_db)):
+async def get_stats(db: Session = Depends(get_db)):
+    cached = await cache.get(cache.DASHBOARD_STATS)
+    if cached is not None:
+        return cached
+
     total_products = db.query(Product).count()
     total_customers = db.query(Customer).count()
     total_orders = db.query(Order).count()
@@ -23,7 +29,7 @@ def get_stats(db: Session = Depends(get_db)):
         .all()
     )
 
-    return DashboardStats(
+    result = DashboardStats(
         total_products=total_products,
         total_customers=total_customers,
         total_orders=total_orders,
@@ -37,3 +43,6 @@ def get_stats(db: Session = Depends(get_db)):
             for p in low_stock
         ],
     )
+
+    await cache.set(cache.DASHBOARD_STATS, result.model_dump(), TTL)
+    return result
