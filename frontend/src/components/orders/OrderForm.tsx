@@ -3,6 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Plus, Trash2 } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,7 +34,7 @@ export function OrderForm({ onSuccess }: Props) {
   const { customers } = useCustomers()
   const { products } = useProducts()
 
-  const { register, handleSubmit, control, setValue, formState: { errors, isSubmitting } } = useForm<FormInput, unknown, FormOutput>({
+  const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(schema),
     defaultValues: { customer_id: '', items: [{ product_id: '', quantity: '1' }] },
   })
@@ -47,8 +49,8 @@ export function OrderForm({ onSuccess }: Props) {
     return sum + Number(product.price) * Number(item.quantity)
   }, 0)
 
-  const onSubmit = async (values: FormOutput) => {
-    try {
+  const mutation = useMutation<void, AxiosError<{ detail?: string }>, FormOutput>({
+    mutationFn: async (values: FormOutput) => {
       await client.post('/orders', {
         customer_id: Number(values.customer_id),
         items: values.items.map(i => ({
@@ -56,12 +58,19 @@ export function OrderForm({ onSuccess }: Props) {
           quantity: Number(i.quantity),
         })),
       })
+    },
+    onSuccess: () => {
       toast.success('Order created')
       onSuccess()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    },
+    onError: (err) => {
+      const msg = err.response?.data?.detail || err.message
       toast.error(msg ?? 'Something went wrong')
-    }
+    },
+  })
+
+  const onSubmit = (values: FormOutput) => {
+    mutation.mutate(values)
   }
 
   return (
@@ -125,8 +134,8 @@ export function OrderForm({ onSuccess }: Props) {
         </p>
       )}
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? 'Placing order…' : 'Place Order'}
+      <Button type="submit" disabled={mutation.isPending} className="w-full">
+        {mutation.isPending ? 'Placing order…' : 'Place Order'}
       </Button>
     </form>
   )

@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
+import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,19 +12,19 @@ import type { Order } from '@/types'
 
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>()
-  const [order, setOrder] = useState<Order | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    client.get<Order>(`/orders/${id}`)
-      .then(r => setOrder(r.data))
-      .catch(() => setError('Order not found'))
-      .finally(() => setLoading(false))
-  }, [id])
+  const { data: order, isLoading: loading, error } = useQuery<Order, AxiosError<{ detail?: string }>>({
+    queryKey: queryKeys.order(id),
+    queryFn: async () => {
+      const { data } = await client.get<Order>(`/orders/${id}`)
+      return data
+    },
+    enabled: !!id,
+  })
 
   if (loading) return <p className="text-muted-foreground">Loading…</p>
-  if (error || !order) return <p className="text-destructive">{error}</p>
+  if (error) return <p className="text-destructive">{error.response?.data?.detail || error.message || 'Failed to load order'}</p>
+  if (!order) return <p className="text-destructive">Order not found</p>
 
   return (
     <div className="space-y-6 max-w-2xl">

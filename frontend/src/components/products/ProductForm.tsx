@@ -2,6 +2,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { useMutation } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,27 +26,33 @@ interface Props {
 }
 
 export function ProductForm({ product, onSuccess }: Props) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormInput, unknown, FormOutput>({
+  const { register, handleSubmit, formState: { errors } } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(schema),
     defaultValues: product
       ? { name: product.name, sku: product.sku, price: String(product.price), quantity_in_stock: String(product.quantity_in_stock) }
       : { quantity_in_stock: '0' },
   })
 
-  const onSubmit = async (values: FormOutput) => {
-    try {
+  const mutation = useMutation<void, AxiosError<{ detail?: string }>, FormOutput>({
+    mutationFn: async (values: FormOutput) => {
       if (product) {
         await client.put(`/products/${product.id}`, values)
-        toast.success('Product updated')
       } else {
         await client.post('/products', values)
-        toast.success('Product created')
       }
+    },
+    onSuccess: () => {
+      toast.success(product ? 'Product updated' : 'Product created')
       onSuccess()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    },
+    onError: (err) => {
+      const msg = err.response?.data?.detail || err.message
       toast.error(msg ?? 'Something went wrong')
-    }
+    },
+  })
+
+  const onSubmit = (values: FormOutput) => {
+    mutation.mutate(values)
   }
 
   return (
@@ -69,8 +77,8 @@ export function ProductForm({ product, onSuccess }: Props) {
         <Input id="qty" type="number" {...register('quantity_in_stock')} />
         {errors.quantity_in_stock && <p className="text-destructive text-xs mt-1">{errors.quantity_in_stock.message}</p>}
       </div>
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? 'Saving…' : product ? 'Update Product' : 'Create Product'}
+      <Button type="submit" disabled={mutation.isPending} className="w-full">
+        {mutation.isPending ? 'Saving…' : product ? 'Update Product' : 'Create Product'}
       </Button>
     </form>
   )

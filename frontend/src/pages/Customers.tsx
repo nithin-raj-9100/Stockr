@@ -1,28 +1,47 @@
 import { useState } from 'react'
 import { Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
+import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CustomerForm } from '@/components/customers/CustomerForm'
 import { useCustomers } from '@/hooks/useCustomers'
 import client from '@/api/client'
 
 export function Customers() {
-  const { customers, loading, error, refetch } = useCustomers()
+  const { customers, loading, error } = useCustomers()
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this customer?')) return
-    try {
+  const deleteMutation = useMutation<void, AxiosError<{ detail?: string }>, number>({
+    mutationFn: async (id: number) => {
       await client.delete(`/customers/${id}`)
+    },
+    onSuccess: () => {
       toast.success('Customer deleted')
-      refetch()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })
+      setDeleteId(null)
+    },
+    onError: (err) => {
+      const msg = err.response?.data?.detail || err.message
       toast.error(msg ?? 'Failed to delete customer')
-    }
-  }
+    },
+  })
 
   if (loading) return <p className="text-muted-foreground">Loading…</p>
   if (error) return <p className="text-destructive">{error}</p>
@@ -56,7 +75,12 @@ export function Customers() {
                 <TableCell>{c.email}</TableCell>
                 <TableCell className="text-muted-foreground">{c.phone ?? '—'}</TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteId(c.id)}
+                    disabled={deleteMutation.isPending}
+                  >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </TableCell>
@@ -71,9 +95,38 @@ export function Customers() {
           <DialogHeader>
             <DialogTitle>Add Customer</DialogTitle>
           </DialogHeader>
-          <CustomerForm onSuccess={() => { setDialogOpen(false); refetch() }} />
+          <CustomerForm onSuccess={() => {
+            setDialogOpen(false)
+            queryClient.invalidateQueries({ queryKey: queryKeys.customers })
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })
+          }} />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this customer? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (deleteId !== null) {
+                  deleteMutation.mutate(deleteId)
+                }
+              }}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

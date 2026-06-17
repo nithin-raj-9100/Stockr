@@ -2,29 +2,49 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Trash2, Plus, Eye } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
+import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { OrderForm } from '@/components/orders/OrderForm'
 import { useOrders } from '@/hooks/useOrders'
 import client from '@/api/client'
 
 export function Orders() {
-  const { orders, loading, error, refetch } = useOrders()
+  const { orders, loading, error } = useOrders()
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Cancel this order?')) return
-    try {
+  const deleteMutation = useMutation<void, AxiosError<{ detail?: string }>, number>({
+    mutationFn: async (id: number) => {
       await client.delete(`/orders/${id}`)
+    },
+    onSuccess: () => {
       toast.success('Order cancelled')
-      refetch()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders })
+      queryClient.invalidateQueries({ queryKey: queryKeys.products })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })
+      setDeleteId(null)
+    },
+    onError: (err) => {
+      const msg = err.response?.data?.detail || err.message
       toast.error(msg ?? 'Failed to cancel order')
-    }
-  }
+    },
+  })
 
   if (loading) return <p className="text-muted-foreground">Loading…</p>
   if (error) return <p className="text-destructive">{error}</p>
@@ -71,7 +91,12 @@ export function Orders() {
                     <Button variant="ghost" size="icon" render={<Link to={`/orders/${o.id}`} />}>
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(o.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteId(o.id)}
+                      disabled={deleteMutation.isPending}
+                    >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -87,9 +112,39 @@ export function Orders() {
           <DialogHeader>
             <DialogTitle>New Order</DialogTitle>
           </DialogHeader>
-          <OrderForm onSuccess={() => { setDialogOpen(false); refetch() }} />
+          <OrderForm onSuccess={() => {
+            setDialogOpen(false)
+            queryClient.invalidateQueries({ queryKey: queryKeys.orders })
+            queryClient.invalidateQueries({ queryKey: queryKeys.products })
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })
+          }} />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this order? This action will restore product quantities and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (deleteId !== null) {
+                  deleteMutation.mutate(deleteId)
+                }
+              }}
+            >
+              {deleteMutation.isPending ? "Cancelling..." : "Cancel Order"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -1,9 +1,22 @@
 import { useState } from 'react'
 import { Pencil, Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
+import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ProductForm } from '@/components/products/ProductForm'
 import { useProducts } from '@/hooks/useProducts'
@@ -11,24 +24,30 @@ import client from '@/api/client'
 import type { Product } from '@/types'
 
 export function Products() {
-  const { products, loading, error, refetch } = useProducts()
+  const { products, loading, error } = useProducts()
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Product | undefined>()
+  const [deleteId, setDeleteId] = useState<number | null>(null)
 
   const openCreate = () => { setEditing(undefined); setDialogOpen(true) }
   const openEdit = (p: Product) => { setEditing(p); setDialogOpen(true) }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this product?')) return
-    try {
+  const deleteMutation = useMutation<void, AxiosError<{ detail?: string }>, number>({
+    mutationFn: async (id: number) => {
       await client.delete(`/products/${id}`)
+    },
+    onSuccess: () => {
       toast.success('Product deleted')
-      refetch()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      queryClient.invalidateQueries({ queryKey: queryKeys.products })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })
+      setDeleteId(null)
+    },
+    onError: (err) => {
+      const msg = err.response?.data?.detail || err.message
       toast.error(msg ?? 'Failed to delete product')
-    }
-  }
+    },
+  })
 
   if (loading) return <p className="text-muted-foreground">Loading…</p>
   if (error) return <p className="text-destructive">{error}</p>
@@ -72,7 +91,12 @@ export function Products() {
                     <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteId(p.id)}
+                      disabled={deleteMutation.isPending}
+                    >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -90,10 +114,39 @@ export function Products() {
           </DialogHeader>
           <ProductForm
             product={editing}
-            onSuccess={() => { setDialogOpen(false); refetch() }}
+            onSuccess={() => {
+              setDialogOpen(false)
+              queryClient.invalidateQueries({ queryKey: queryKeys.products })
+              queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })
+            }}
           />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this product? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (deleteId !== null) {
+                  deleteMutation.mutate(deleteId)
+                }
+              }}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -2,6 +2,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { useMutation } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,19 +22,26 @@ interface Props {
 }
 
 export function CustomerForm({ onSuccess }: Props) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   })
 
-  const onSubmit = async (values: FormValues) => {
-    try {
+  const mutation = useMutation<void, AxiosError<{ detail?: string }>, FormValues>({
+    mutationFn: async (values: FormValues) => {
       await client.post('/customers', values)
+    },
+    onSuccess: () => {
       toast.success('Customer created')
       onSuccess()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    },
+    onError: (err) => {
+      const msg = err.response?.data?.detail || err.message
       toast.error(msg ?? 'Something went wrong')
-    }
+    },
+  })
+
+  const onSubmit = (values: FormValues) => {
+    mutation.mutate(values)
   }
 
   return (
@@ -51,8 +60,8 @@ export function CustomerForm({ onSuccess }: Props) {
         <Label htmlFor="phone">Phone (optional)</Label>
         <Input id="phone" {...register('phone')} />
       </div>
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? 'Saving…' : 'Create Customer'}
+      <Button type="submit" disabled={mutation.isPending} className="w-full">
+        {mutation.isPending ? 'Saving…' : 'Create Customer'}
       </Button>
     </form>
   )

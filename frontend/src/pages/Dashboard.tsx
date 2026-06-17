@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
 import { Package, Users, ShoppingCart, AlertTriangle } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
+import { queryKeys } from '@/api/queryKeys'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import client from '@/api/client'
@@ -20,17 +22,17 @@ function StatCard({ title, value, icon: Icon }: { title: string; value: number; 
 }
 
 export function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    client.get<DashboardStats>('/dashboard/stats')
-      .then(r => setStats(r.data))
-      .finally(() => setLoading(false))
-  }, [])
+  const { data: stats, isLoading: loading, error } = useQuery<DashboardStats, AxiosError<{ detail?: string }>>({
+    queryKey: queryKeys.dashboardStats,
+    queryFn: async () => {
+      const { data } = await client.get<DashboardStats>('/dashboard/stats')
+      return data
+    },
+  })
 
   if (loading) return <p className="text-muted-foreground">Loading…</p>
-  if (!stats) return <p className="text-destructive">Failed to load stats.</p>
+  if (error) return <p className="text-destructive">{error.response?.data?.detail || error.message || 'Failed to load stats.'}</p>
+  if (!stats) return <p className="text-destructive">No stats available.</p>
 
   return (
     <div className="space-y-8">

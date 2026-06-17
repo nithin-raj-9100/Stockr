@@ -1,23 +1,24 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import client from '@/api/client'
+import { queryKeys } from '@/api/queryKeys'
 import type { Customer } from '@/types'
 
 export function useCustomers() {
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [tick, setTick] = useState(0)
+  const { data = [], isLoading: loading, error, refetch } = useQuery<Customer[], AxiosError<{ detail?: string }>>({
+    queryKey: queryKeys.customers,
+    queryFn: async () => {
+      const { data } = await client.get<Customer[]>('/customers')
+      return data
+    },
+  })
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    client.get<Customer[]>('/customers')
-      .then(({ data }) => setCustomers(data))
-      .catch(() => setError('Failed to load customers'))
-      .finally(() => setLoading(false))
-  }, [tick])
+  const errorMsg = error?.response?.data?.detail || error?.message || null
 
-  const refetch = useCallback(() => setTick(t => t + 1), [])
-
-  return { customers, loading, error, refetch }
+  return {
+    customers: data,
+    loading,
+    error: errorMsg,
+    refetch,
+  }
 }

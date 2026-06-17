@@ -1,23 +1,24 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import client from '@/api/client'
+import { queryKeys } from '@/api/queryKeys'
 import type { Product } from '@/types'
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [tick, setTick] = useState(0)
+  const { data = [], isLoading: loading, error, refetch } = useQuery<Product[], AxiosError<{ detail?: string }>>({
+    queryKey: queryKeys.products,
+    queryFn: async () => {
+      const { data } = await client.get<Product[]>('/products')
+      return data
+    },
+  })
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    client.get<Product[]>('/products')
-      .then(({ data }) => setProducts(data))
-      .catch(() => setError('Failed to load products'))
-      .finally(() => setLoading(false))
-  }, [tick])
+  const errorMsg = error?.response?.data?.detail || error?.message || null
 
-  const refetch = useCallback(() => setTick(t => t + 1), [])
-
-  return { products, loading, error, refetch }
+  return {
+    products: data,
+    loading,
+    error: errorMsg,
+    refetch,
+  }
 }
