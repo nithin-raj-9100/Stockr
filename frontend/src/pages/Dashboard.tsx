@@ -36,28 +36,28 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-2xl font-semibold">Dashboard</h2>
+      <h2 className="text-xl md:text-2xl font-semibold">Dashboard</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard title="Total Products" value={stats.total_products} icon={Package} />
         <StatCard title="Total Customers" value={stats.total_customers} icon={Users} />
         <StatCard title="Total Orders" value={stats.total_orders} icon={ShoppingCart} />
       </div>
 
       <div>
-        <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+        <h3 className="text-base md:text-lg font-medium mb-3 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-yellow-500" />
           Low Stock Products
         </h3>
         {stats.low_stock_products.length === 0 ? (
           <p className="text-muted-foreground text-sm">All products are sufficiently stocked.</p>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Name</th>
-                  <th className="text-left px-4 py-2 font-medium">SKU</th>
+                  <th className="text-left px-4 py-2 font-medium hidden md:table-cell">SKU</th>
                   <th className="text-left px-4 py-2 font-medium">Stock</th>
                 </tr>
               </thead>
@@ -65,7 +65,7 @@ export function Dashboard() {
                 {stats.low_stock_products.map(p => (
                   <tr key={p.id} className="border-t">
                     <td className="px-4 py-2">{p.name}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{p.sku}</td>
+                    <td className="px-4 py-2 text-muted-foreground hidden md:table-cell">{p.sku}</td>
                     <td className="px-4 py-2">
                       <Badge variant={p.quantity_in_stock === 0 ? 'destructive' : 'secondary'}>
                         {p.quantity_in_stock}

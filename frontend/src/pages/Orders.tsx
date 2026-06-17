@@ -51,8 +51,8 @@ export function Orders() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Orders</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl md:text-2xl font-semibold">Orders</h2>
         <Button onClick={() => setDialogOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1" /> New Order
         </Button>
@@ -63,7 +63,7 @@ export function Orders() {
           <TableHeader>
             <TableRow>
               <TableHead>Order #</TableHead>
-              <TableHead>Customer ID</TableHead>
+              <TableHead className="hidden md:table-cell">Customer ID</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
@@ -77,7 +77,7 @@ export function Orders() {
             {orders.map(o => (
               <TableRow key={o.id}>
                 <TableCell className="font-medium">#{o.id}</TableCell>
-                <TableCell>{o.customer_id}</TableCell>
+                <TableCell className="hidden md:table-cell">{o.customer_id}</TableCell>
                 <TableCell>${Number(o.total_amount).toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="capitalize">{o.status}</Badge>

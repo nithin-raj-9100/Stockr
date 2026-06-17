@@ -48,8 +48,8 @@ export function Customers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Customers</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl md:text-2xl font-semibold">Customers</h2>
         <Button onClick={() => setDialogOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Add Customer
         </Button>
@@ -61,7 +61,7 @@ export function Customers() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead className="hidden md:table-cell">Phone</TableHead>
               <TableHead className="w-16" />
             </TableRow>
           </TableHeader>
@@ -73,7 +73,7 @@ export function Customers() {
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.full_name}</TableCell>
                 <TableCell>{c.email}</TableCell>
-                <TableCell className="text-muted-foreground">{c.phone ?? '—'}</TableCell>
+                <TableCell className="hidden md:table-cell text-muted-foreground">{c.phone ?? '—'}</TableCell>
                 <TableCell>
                   <Button
                     variant="ghost"

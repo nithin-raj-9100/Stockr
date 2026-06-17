@@ -54,8 +54,8 @@ export function Products() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Products</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl md:text-2xl font-semibold">Products</h2>
         <Button onClick={openCreate} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Add Product
         </Button>
@@ -66,7 +66,7 @@ export function Products() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>SKU</TableHead>
+              <TableHead className="hidden md:table-cell">SKU</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead className="w-24" />
@@ -79,7 +79,7 @@ export function Products() {
             {products.map(p => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell className="text-muted-foreground">{p.sku}</TableCell>
+                <TableCell className="hidden md:table-cell text-muted-foreground">{p.sku}</TableCell>
                 <TableCell>${Number(p.price).toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant={p.quantity_in_stock <= 10 ? (p.quantity_in_stock === 0 ? 'destructive' : 'secondary') : 'outline'}>

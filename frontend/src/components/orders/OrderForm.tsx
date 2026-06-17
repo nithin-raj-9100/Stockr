@@ -93,7 +93,7 @@ export function OrderForm({ onSuccess }: Props) {
       <div className="space-y-3">
         <Label>Items</Label>
         {fields.map((field, index) => (
-          <div key={field.id} className="flex gap-2 items-start">
+          <div key={field.id} className="flex flex-col sm:flex-row gap-2 items-start">
             <div className="flex-1">
               <Select onValueChange={v => setValue(`items.${index}.product_id`, v as string)}>
                 <SelectTrigger>
@@ -111,7 +111,7 @@ export function OrderForm({ onSuccess }: Props) {
                 <p className="text-destructive text-xs mt-1">{errors.items[index].product_id?.message}</p>
               )}
             </div>
-            <div className="w-24">
+            <div className="w-full sm:w-24">
               <Input type="number" min={1} placeholder="Qty" {...register(`items.${index}.quantity`)} />
               {errors.items?.[index]?.quantity && (
                 <p className="text-destructive text-xs mt-1">{errors.items[index].quantity?.message}</p>

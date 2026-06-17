@@ -28,12 +28,12 @@ export function OrderDetail() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         {/* Base UI Button uses render prop instead of asChild */}
         <Button variant="ghost" size="icon" render={<Link to="/orders" />}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-2xl font-semibold">Order #{order.id}</h2>
+        <h2 className="text-xl md:text-2xl font-semibold">Order #{order.id}</h2>
         <Badge variant="outline" className="capitalize">{order.status}</Badge>
       </div>
 
