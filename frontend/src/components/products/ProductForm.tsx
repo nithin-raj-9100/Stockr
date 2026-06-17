@@ -30,7 +30,7 @@ export function ProductForm({ product, onSuccess }: Props) {
     resolver: zodResolver(schema),
     defaultValues: product
       ? { name: product.name, sku: product.sku, price: String(product.price), quantity_in_stock: String(product.quantity_in_stock) }
-      : { quantity_in_stock: '0' },
+      : { name: '', sku: '', price: '', quantity_in_stock: '0' },
   })
 
   const mutation = useMutation<void, AxiosError<{ detail?: string }>, FormOutput>({

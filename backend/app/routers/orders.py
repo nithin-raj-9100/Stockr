@@ -29,11 +29,14 @@ async def list_orders(q: str | None = None, status: str | None = None, db: Sessi
 @router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
 async def create_order(data: OrderCreate, db: Session = Depends(get_db)):
     order = order_service.create(db, data)
-    await cache.delete(
+    keys_to_delete = [
         cache.ORDERS_ALL,
         cache.PRODUCTS_ALL,
         cache.DASHBOARD_STATS,
-    )
+    ]
+    for item in data.items:
+        keys_to_delete.append(cache.PRODUCT_ONE.format(id=item.product_id))
+    await cache.delete(*keys_to_delete)
     return order
 
 
@@ -51,9 +54,13 @@ async def get_order(order_id: int, db: Session = Depends(get_db)):
 
 @router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_order(order_id: int, db: Session = Depends(get_db)):
-    order_service.delete(db, order_id)
-    await cache.delete(
+    product_ids = order_service.delete(db, order_id)
+    keys_to_delete = [
         cache.ORDERS_ALL,
+        cache.PRODUCTS_ALL,
         cache.ORDER_ONE.format(id=order_id),
         cache.DASHBOARD_STATS,
-    )
+    ]
+    for pid in product_ids:
+        keys_to_delete.append(cache.PRODUCT_ONE.format(id=pid))
+    await cache.delete(*keys_to_delete)

@@ -43,7 +43,8 @@ export function OrderForm({ onSuccess }: Props) {
 
   const watchedItems = useWatch({ control, name: 'items' })
 
-  const estimatedTotal = watchedItems.reduce((sum, item) => {
+  const estimatedTotal = (watchedItems || []).reduce((sum, item) => {
+    if (!item) return sum
     const product = products.find(p => p.id === Number(item.product_id))
     if (!product || !item.quantity) return sum
     return sum + Number(product.price) * Number(item.quantity)
@@ -77,7 +78,7 @@ export function OrderForm({ onSuccess }: Props) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
         <Label>Customer</Label>
-        <Select onValueChange={v => setValue('customer_id', v as string)}>
+        <Select onValueChange={v => setValue('customer_id', v as string, { shouldValidate: true })}>
           <SelectTrigger>
             <SelectValue placeholder="Select customer…" />
           </SelectTrigger>
@@ -95,7 +96,7 @@ export function OrderForm({ onSuccess }: Props) {
         {fields.map((field, index) => (
           <div key={field.id} className="flex flex-col sm:flex-row gap-2 items-start">
             <div className="flex-1">
-              <Select onValueChange={v => setValue(`items.${index}.product_id`, v as string)}>
+              <Select onValueChange={v => setValue(`items.${index}.product_id`, v as string, { shouldValidate: true })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select product…" />
                 </SelectTrigger>

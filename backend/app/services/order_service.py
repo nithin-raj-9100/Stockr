@@ -85,7 +85,19 @@ def create(db: Session, data: OrderCreate) -> Order:
     return order
 
 
-def delete(db: Session, order_id: int) -> None:
+def delete(db: Session, order_id: int) -> list[int]:
     order = get_by_id(db, order_id)
+    product_ids = []
+    for item in order.items:
+        product = (
+            db.query(Product)
+            .filter(Product.id == item.product_id)
+            .with_for_update()
+            .first()
+        )
+        if product:
+            product.quantity_in_stock += item.quantity
+            product_ids.append(product.id)
     db.delete(order)
     db.commit()
+    return product_ids
