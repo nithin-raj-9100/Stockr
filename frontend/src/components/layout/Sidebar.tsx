@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Package, Users, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -35,6 +36,9 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      <div className="p-3 border-t">
+        <ThemeToggle />
+      </div>
     </aside>
   )
 }
