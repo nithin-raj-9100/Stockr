@@ -14,7 +14,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="w-60 min-h-screen bg-card border-r flex flex-col">
       <div className="px-6 py-5 border-b">
-        <h1 className="text-lg font-semibold tracking-tight">Inventory</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Stockr</h1>
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {links.map(({ to, label, icon: Icon }) => (

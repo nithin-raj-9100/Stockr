@@ -61,7 +61,7 @@ export function Layout() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold tracking-tight">Inventory</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Stockr</h1>
         </div>
 
         <main className="flex-1 p-4 md:p-8 overflow-auto">
